@@ -1,0 +1,10 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/source/libs/startup/startup_stm32f10x_md.s
+
