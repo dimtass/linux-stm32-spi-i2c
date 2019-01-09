@@ -1,6 +1,0 @@
-/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/build-stm32/CMakeFiles/rebuild_cache.dir
-/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/build-stm32/CMakeFiles/edit_cache.dir
-/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/build-stm32/CMakeFiles/write.dir
-/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/build-stm32/CMakeFiles/linux-stm32-spi-i2c.bin.dir
-/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/build-stm32/CMakeFiles/linux-stm32-spi-i2c.elf.dir
-/rnd/bitbucket/linux-stm32-spi-i2c/stm32-i2c-spi/build-stm32/CMakeFiles/linux-stm32-spi-i2c.hex.dir
