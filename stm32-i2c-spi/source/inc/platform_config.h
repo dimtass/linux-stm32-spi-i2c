@@ -13,17 +13,19 @@
 #include <stddef.h>
 #include "stm32f10x.h"
 #include "dev_uart.h"
+#include "dev_spi.h"
+#include "dev_pwm.h"
 
 /**
  * Trace levels for this project.
  * Have in mind that these are bit flags!
  */
-typedef enum {
+enum en_trace_level {
 	TRACE_LEVEL_DEFAULT = 	(1 << 0),
 	TRACE_LEVEL_SPI = 		(1 << 1),
 	TRACE_LEVEL_I2C = 	(1 << 2),
 	TRACE_LEVEL_UART = 		(1 << 3),
-} en_trace_level;
+};
 
 #define DEBUG_TRACE
 
@@ -45,12 +47,12 @@ struct tp_glb {
 	uint16_t	tmr_10ms;
 	uint16_t 	tmr_1000ms;
 	uint8_t		mode;
-	en_trace_level trace_levels;
+	enum en_trace_level trace_levels;
 };
 
 extern volatile struct tp_glb glb;
 
-static inline void set_trace_level(en_trace_level level, uint8_t enable)
+static inline void set_trace_level(enum en_trace_level level, uint8_t enable)
 {
 	if (enable) {
 		glb.trace_levels |= (uint32_t) level;

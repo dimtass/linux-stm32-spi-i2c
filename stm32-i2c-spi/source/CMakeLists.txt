@@ -41,6 +41,7 @@ set(SRC_FILES
         cortexm_delay.c
         dev_spi.c
         dev_uart.c
+        dev_pwm.c
         overclock_stm32f103.c
         stm32f10x_it.c
         system_stm32f10x.c
@@ -56,7 +57,7 @@ set_source_files_properties(${SRC_FILES}
 )
 # set compiler
 set(COMPILER_OPTIONS "-Wall -Werror")
-set(COMPILER_OPTIMISATION "-g -O2")
+set(COMPILER_OPTIMISATION "-g -O3")
 set(CMAKE_C_FLAGS   "${COMPILER_OPTIONS} ${COMPILER_OPTIMISATION} -std=c11")
 set(STM32_FLAGS "-march=armv7-m -mcpu=cortex-m3 -mthumb -mlittle-endian -mthumb-interwork ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${STM32_FLAGS} -lm -lc --specs=nano.specs -fmessage-length=0 -ffunction-sections")
