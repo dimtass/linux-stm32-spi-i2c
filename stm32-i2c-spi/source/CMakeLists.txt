@@ -35,6 +35,7 @@ set(SRC_FILES
         ${PERIPH_LIB_SRC}/stm32f10x_dma.c
         ${PERIPH_LIB_SRC}/stm32f10x_usart.c
         ${PERIPH_LIB_SRC}/stm32f10x_i2c.c
+        ${PERIPH_LIB_SRC}/stm32f10x_tim.c
         # Rest source files
         syscalls.c
         main.c

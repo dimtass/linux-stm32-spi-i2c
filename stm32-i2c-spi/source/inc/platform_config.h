@@ -23,8 +23,9 @@
 enum en_trace_level {
 	TRACE_LEVEL_DEFAULT = 	(1 << 0),
 	TRACE_LEVEL_SPI = 		(1 << 1),
-	TRACE_LEVEL_I2C = 	(1 << 2),
+	TRACE_LEVEL_I2C = 		(1 << 2),
 	TRACE_LEVEL_UART = 		(1 << 3),
+	TRACE_LEVEL_PWM = 		(1 << 4),
 };
 
 #define DEBUG_TRACE
