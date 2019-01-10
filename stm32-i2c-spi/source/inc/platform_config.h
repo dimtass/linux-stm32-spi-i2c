@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include "stm32f10x.h"
+#include "misc.h"
 #include "dev_uart.h"
 #include "dev_spi.h"
 #include "dev_pwm.h"
