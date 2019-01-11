@@ -28,7 +28,7 @@
 
 #define DEBUG(X) TRACEL(TRACE_LEVEL_PWM, X)
 
-struct tp_pwm_out m_pwm_out[] = {
+struct pwm_hw m_pwm_hw[] = {
     /* TIM1 */
     [PWM1_1] = {1, GPIOA, GPIO_Pin_8},
     [PWM1_2] = {2, GPIOA, GPIO_Pin_9},

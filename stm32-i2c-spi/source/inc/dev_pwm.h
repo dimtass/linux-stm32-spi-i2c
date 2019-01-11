@@ -60,29 +60,36 @@ enum en_pwm_channel_pin {
     PWM4_4,     //PB.9
 };
 
-struct tp_pwm_out {
-    uint16_t                num;
+enum en_pwm_polarity {
+    PWM_POLARITY_NORMAL = 0,
+    PWM_POLARITY_INVERSED
+};
+
+struct pwm_hw {
+    TIM_TypeDef *           timer;
 	GPIO_TypeDef *          port;   /* PWM output port */
     uint16_t                pin;    /* PWM output pin */
 };
 
-struct dev_pwm {
-    TIM_TypeDef *           timer;
-    uint16_t                freq;   /* PWM frequency in Hz */
-    /* private parameters */
-    uint32_t                period;
+struct pwm_chip {
+    enum en_pwm_channel_pin chan;    /* PWM channel number 1-4 */
+    uint16_t                num;
     TIM_TimeBaseInitTypeDef config;
+    TIM_OCInitTypeDef       oc;
 };
 
-struct dev_pwm_channel {
-    enum en_pwm_channel_pin chan;    /* PWM channel number 1-4 */
-    uint16_t                value;
+struct pwm_state {
+    uint32_t                period;
+    float                   duty_cycle; /* 0.00 - 100.00 */
+    enum en_pwm_polarity    polarity;
+};
+
+struct pwm_device {
     enum en_pwm_ch_status   status;
+    struct pwm_state *      state;
 
     /* private do not fill these */
-    TIM_OCInitTypeDef       oc;
-	struct tp_pwm_out *     output;
-    struct dev_pwm *        parent;
+	struct pwm_chip *       chip;
 };
 
 void pwm_add_channel(enum en_pwm_channel_pin pwm_channel, uint16_t freq, struct dev_pwm_channel * channel);
