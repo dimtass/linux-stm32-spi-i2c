@@ -23,7 +23,7 @@ volatile struct tp_glb glb;
 DECLARE_UART_DEV(dbg_uart, USART1, 115200, 256, 10, 1);
 
 
-struct dev_pwm_channel pwm_chan;
+struct pwm_device pwm_chan;
 
 int counter = 0;
 int fps = 0;
@@ -36,6 +36,7 @@ void main_loop(void)
 		dev_uart_update(&dbg_uart);
 	}
 }
+
 void main2(void)
 {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
@@ -112,8 +113,10 @@ int main(void)
 	/* set callback for uart rx */
 	dbg_uart.fp_dev_uart_cb = dbg_uart_parser;
 	/* set up the PWM on TIM1 with a 32KHz freq */
-	pwm_add_channel(PWM1_1, 32000, &pwm_chan);
-	pwm_set_duty_cycle(&pwm_chan, 50);
+	pwm_add(PWM1_1, &pwm_chan, 32000);
+	pwm_set_polarity(&pwm_chan, PWM_POLARITY_NORMAL);
+	pwm_set_duty_cycle(&pwm_chan, 53.5);
+	pwm_enable(&pwm_chan);
 
 	TRACE(("stm32f103 & SPI & TRACE_LEVEL_I2C...\n"));
 	// main2();
