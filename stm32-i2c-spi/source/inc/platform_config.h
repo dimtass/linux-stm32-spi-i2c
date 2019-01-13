@@ -16,6 +16,7 @@
 #include "dev_uart.h"
 #include "dev_spi.h"
 #include "dev_pwm.h"
+#include "dev_i2c_slave.h"
 
 /**
  * Trace levels for this project.

@@ -43,7 +43,7 @@ set(SRC_FILES
         dev_spi.c
         dev_uart.c
         dev_pwm.c
-        #dev_i2c_slave.c
+        dev_i2c_slave.c
         overclock_stm32f103.c
         stm32f10x_it.c
         system_stm32f10x.c
