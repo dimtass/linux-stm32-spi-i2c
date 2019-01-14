@@ -213,3 +213,40 @@ void I2C2_ER_IRQHandler(void) {
         I2C_ClearITPendingBit(I2C2, I2C_IT_AF);
     }
 }
+
+/**
+ * Example of interrupt callback routine in main:
+ * 
+ 
+ uint8_t i2c_interrupt(struct i2c_client * i2c, enum i2c_slave_event event, uint8_t * byte)
+{
+	uint8_t resp = 0;
+	PORT_STATUS_LED->ODR ^= PIN_STATUS_LED;
+	// TRACE(("%d: 0x%02X", event, *byte));
+	switch (event) {
+	case I2C_SLAVE_ADDRESSED:
+		TRACE(("1 - %d: 0x%02X\n", event, *byte));
+		break;
+	case I2C_SLAVE_READ_REQUESTED:
+		resp = 0xAA; //i2c_counter++;
+		TRACE(("2 - %d: 0x%02X\n", event, *byte));
+		break;
+	case I2C_SLAVE_WRITE_REQUESTED:
+		TRACE(("3 - %d: 0x%02X\n", event, *byte));
+		resp = 0xBB;
+		break;
+	case I2C_SLAVE_READ_PROCESSED:
+		TRACE(("4 - %d: 0x%02X\n", event, *byte));
+		break;
+	case I2C_SLAVE_WRITE_RECEIVED:
+		TRACE(("5 - %d: 0x%02X\n", event, *byte));
+		resp = 0xB1;
+		break;
+	case I2C_SLAVE_STOP:
+		TRACE(("6 - %d: 0x%02X\n", event, *byte));
+		break;
+	};
+	return resp;
+}
+
+*/

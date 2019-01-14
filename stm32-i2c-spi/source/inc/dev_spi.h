@@ -1,4 +1,4 @@
-/*
+/**
  * dev_spi.h
  *
  * Copyright 2018 Dimitris Tassopoulos
