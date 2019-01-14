@@ -7,6 +7,19 @@
 
 #include "dev_adc.h"
 
+struct adc_input m_adc_input[] = {
+	[0] = {GPIOA, GPIO_Pin_0},
+	[1] = {GPIOA, GPIO_Pin_1},
+	[2] = {GPIOA, GPIO_Pin_2},
+	[3] = {GPIOA, GPIO_Pin_3},
+	[4] = {GPIOA, GPIO_Pin_4},
+	[5] = {GPIOA, GPIO_Pin_5},
+	[6] = {GPIOA, GPIO_Pin_6},
+	[7] = {GPIOA, GPIO_Pin_7},
+	[8] = {GPIOB, GPIO_Pin_0},
+	[9] = {GPIOB, GPIO_Pin_1},
+};
+
 #define ADC1_DR_Address    ((uint32_t)0x4001244C)
 #define ADC2_DR_Address    ((uint32_t)0x4001284C)
 //#define ADC3_DR_Address    ((uint32_t)0x40013C4C)

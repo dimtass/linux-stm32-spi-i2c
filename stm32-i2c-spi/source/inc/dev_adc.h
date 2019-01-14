@@ -26,9 +26,13 @@
  * Author: Dimitris Tassopoulos <dimtass@gmail.com>
  */
 
+#ifndef DEV_ADC_H_
+#define DEV_ADC_H_
+
 #include <stdint.h>
 #include "stm32f10x.h"
 #include "platform_config.h"
+#include "list.h"
 
 enum en_adc_dev {
     DEV_ADC1,
@@ -42,92 +46,41 @@ enum en_adc_mode {
 	DEV_ADC_MODE_POLLING    // creates IRQ for the host
 };
 
-typedef int (adc_cb_t)(struct adc_device * adc, uint16_t value);
+typedef int (*adc_cb_t)(struct adc_device * adc, uint16_t value);
 
 static struct adc_controller m_adc_controller[] = {
     [DEV_ADC1] = {ADC1, 0x4001244C, RCC_APB2Periph_ADC1, },
     [DEV_ADC2] = {},
 };
 
-struct adc_controller {
-	ADC_TypeDef     *adc;
-    uint32_t        address;
-    uint32_t        apb_periph;
+struct adc_input {
 	GPIO_TypeDef    *port;
+	uint16_t 		pin;
 };
 
-struct adc_dma {
-    DMA_Channel_TypeDef     *channel;
-    uint32_t                *mem_address;
-    DMA_InitTypeDef         conf;
+struct adc_controller {
+	ADC_TypeDef     *adc;
+	struct adc_input *input;
+    uint32_t        address;
+    uint32_t        apb_periph;
 };
 
 struct adc_device {
     uint16_t        ch;
     uint8_t         enable;
     enum en_adc_mode mode;
-    uint8_t         dma_enable;
+	uint8_t 		ready;
+	volatile uint16_t value;
+	adc_cb_t		adc_cb;	// callback
+
 	ADC_InitTypeDef conf;
     struct adc_dma  *dma;
     struct adc_controller *controller;
-};
-
-
-
-#ifndef DEV_ADC_H_
-#define DEV_ADC_H_
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include "stm32f10x.h"
-#include "platform_config.h"
-#include "list.h"
-
-enum en_adc_mode {
-	DEV_ADC_MODE_SINGLE,
-	DEV_ADC_MODE_POLLING
-};
-
-#define DECLARE_ADC_CH(OWNER, CHANNEL, ENABLE) { OWNER, CHANNEL, ENABLE, 0, 0 }
-
-#define DECLARE_DEV_ADC(OWNER, NAME, CHANNEL, ENABLE) \
-	struct dev_adc NAME = { \
-		.owner = OWNER, \
-		.channel = CHANNEL, \
-		.enable = ENABLE, \
-		.ready = 0, \
-		.value = 0, \
-	}
-
-struct dev_adc {
-	struct dev_adc_module * owner;
-	uint8_t	channel;
-	uint8_t enable;
-	uint8_t ready;
-	volatile uint16_t value;
 	struct list_head list;
 };
 
 
-#define DECLARE_MODULE_ADC(NAME, ADC, MODE, TICK_MS) \
-	struct dev_adc_module NAME = { \
-		.adc = ADC, \
-		.mode = MODE, \
-		.tick_ms = TICK_MS, \
-		.curr_channel = NULL, \
-	}
-
-struct dev_adc_module {
-	ADC_TypeDef * adc;
-	enum en_adc_mode	mode;
-	uint16_t	tick_ms;
-	struct dev_adc * curr_channel;
-	struct list_head adc_ch_list;
-};
-
-void dev_adc_module_init(struct dev_adc_module * adc);
-void dev_adc_start(struct dev_adc_module * dev);
+void adc_init(struct adc_device * dev, enum en_adc_mode mode, adc_cb_t callback);
 void* dev_adc_probe(struct dev_adc * adc_dev_arr);
 void dev_adc_remove(struct dev_adc * adc_dev_arr);
 uint8_t dev_adc_set_channel(struct dev_adc_module * dev, uint8_t ch);
