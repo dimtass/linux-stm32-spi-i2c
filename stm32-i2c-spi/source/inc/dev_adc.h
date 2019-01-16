@@ -52,6 +52,8 @@ enum en_adc_mode {
 	DEV_ADC_MODE_POLLING    // triggers a conversion as soon the previous is done
 };
 
+struct adc_channel;
+
 typedef int (*adc_cb_t)(struct adc_channel * adc, uint16_t value);
 
 struct adc_input {
@@ -102,7 +104,7 @@ int adc_avg_conf(uint8_t avg_shift);
 void adc_set_sample_speed(struct adc_channel * ch, uint8_t sample_time);
 
 uint8_t adc_set_channel(struct adc_channel * dev, uint8_t ch);
-uint8_t adc_enable_channel(struct adc_channel * dev, uint8_t enable);
+void adc_enable_channel(struct adc_channel * ch, uint8_t enable);
 uint8_t adc_disable_channel(struct adc_channel * dev);
 void adc_reset_channel(struct adc_channel * ch);
 // void adc_update(struct adc_channel * dev);

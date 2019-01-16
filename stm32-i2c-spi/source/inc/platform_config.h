@@ -13,10 +13,6 @@
 #include <stddef.h>
 #include "stm32f10x.h"
 #include "misc.h"
-#include "dev_uart.h"
-#include "dev_spi.h"
-#include "dev_pwm.h"
-#include "dev_i2c_slave.h"
 
 /**
  * Trace levels for this project.
@@ -28,6 +24,7 @@ enum en_trace_level {
 	TRACE_LEVEL_I2C = 		(1 << 2),
 	TRACE_LEVEL_UART = 		(1 << 3),
 	TRACE_LEVEL_PWM = 		(1 << 4),
+	TRACE_LEVEL_ADC = 		(1 << 5),
 };
 
 #define DEBUG_TRACE

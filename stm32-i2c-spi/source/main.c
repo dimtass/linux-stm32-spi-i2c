@@ -10,7 +10,11 @@
 #include <stdio.h>
 #include "cortexm_delay.h"
 #include "platform_config.h"
-
+#include "dev_adc.h"
+#include "dev_uart.h"
+#include "dev_spi.h"
+#include "dev_pwm.h"
+#include "dev_i2c_slave.h"
 
 /* This function overclocks stm32 to 128MHz */
 extern uint32_t overclock_stm32f103(void);
@@ -62,6 +66,7 @@ int main(void)
 			| TRACE_LEVEL_I2C
 			| TRACE_LEVEL_UART
 			| TRACE_LEVEL_PWM
+			| TRACE_LEVEL_ADC
 			,1);
 	/* debug led */
 	GPIO_InitTypeDef led;
@@ -77,6 +82,7 @@ int main(void)
 	dev_uart_add(&dbg_uart);
 	/* set callback for uart rx */
 	dbg_uart.fp_dev_uart_cb = dbg_uart_parser;
+
 
 	/* set up the PWM on TIM1 with a 32KHz freq */
 	// pwm_add(PWM1_1, &pwm_chan, 32000);

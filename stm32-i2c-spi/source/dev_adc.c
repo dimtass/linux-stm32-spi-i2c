@@ -5,13 +5,14 @@
  *      Author: dimtass
  */
 
+#include "stm32f10x.h"
 #include "dev_adc.h"
 
 LIST_HEAD(adc_channel_list);
 
 static struct adc_controller m_adc_controller[] = {
-    [DEV_ADC1] = {ADC1, RCC_APB2Periph_ADC1},
-    [DEV_ADC2] = {ADC2, RCC_APB2Periph_ADC2},
+    [DEV_ADC1] = {DEV_ADC1, ADC1, RCC_APB2Periph_ADC1, NULL},
+    [DEV_ADC2] = {DEV_ADC2, ADC2, RCC_APB2Periph_ADC2, NULL},
 };
 
 struct adc_input m_adc_input[] = {
@@ -43,24 +44,24 @@ int adc_init_channel(struct adc_channel * ch, enum en_adc_dev adc_device,
 		return -1;
 	if (adc_device >= DEV_ADC_END)
 		return -2;
-	if (adc_device >= ADC_CH_END)
+	if (channel_num >= ADC_CH_END)
 		return -3;
 
 	if (SystemCoreClock > 72000000)
-		RCC_ADCCLKConfig(RCC_PCLK2_Div6)
+		RCC_ADCCLKConfig(RCC_PCLK2_Div6);
 	else
 		RCC_ADCCLKConfig(RCC_PCLK2_Div4);
 
 	list_add(&ch->list, &adc_channel_list);
-	
+
 	/* copy parameters */
 	ch->ch_num = channel_num;
 	ch->mode = mode;
 	ch->adc_cb = callback;
 	ch->ready = 0;
 
+	ch->controller = &m_adc_controller[adc_device];
 	ch->controller->adc_num = adc_device;
-	ch->controller->adc = &m_adc_controller[adc_device];
 	ch->controller->input = &m_adc_input[channel_num];
 
 	/* Enable ADCx and GPIOx clock */
@@ -109,22 +110,23 @@ int adc_start(struct adc_channel * ch)
 
 	TRACEL(TRACE_LEVEL_ADC, ("ADC%d.%d start\n", ch->controller->adc_num, ch->ch_num));
 	/* Set channel */
-	ADC_RegularChannelConfig(ch->controller->adc, ch->ch_num, 1, sample_time);
+	ADC_RegularChannelConfig(ch->controller->adc, ch->ch_num, 1, ch->sample_time);
 	/* Enable ADCx EOC interrupt */
 	ADC_ITConfig(ch->controller->adc, ADC_IT_EOC, ENABLE);
 	/* Start ADCx Software Conversion */
 	ADC_SoftwareStartConvCmd(ch->controller->adc, ENABLE);
 
 	ch->enable = 1;
-	ch->avg->value = 0;
-	ch->avg->shift_cntr = 0;
+	ch->avg.value = 0;
+	ch->avg.shift_cntr = 0;
+
+	return 0;
 }
 
 void adc_stop(struct adc_channel * ch)
 {
-
-	ch->avg->value = 0;
-	ch->avg->shift_cntr = 0;
+	ch->avg.value = 0;
+	ch->avg.shift_cntr = 0;
 }
 
 void adc_set_sample_speed(struct adc_channel * ch, uint8_t sample_time)
@@ -132,36 +134,32 @@ void adc_set_sample_speed(struct adc_channel * ch, uint8_t sample_time)
 	ch->sample_time = sample_time;
 }
 
-uint8_t adc_enable_channel(struct adc_channel * ch, uint8_t enable)
+void adc_enable_channel(struct adc_channel * ch, uint8_t enable)
 {
-	struct dev_adc * found_ch = dev_adc_find_channel(dev, ch);
-	if (found_ch) {
-		found_ch->enable = enable;
-	}
-	return(!!found_ch);
+	ch->enable = enable;
 }
 
 static inline struct adc_channel * adc_find(ADC_TypeDef * adc, uint8_t channel)
 {
-	if (!list_empty(&adc_ch_list)) {
+	if (!list_empty(&adc_channel_list)) {
 		struct adc_channel * ch_it;
-		list_for_each_entry(ch_it, &ch->adc_ch_list, list) {
-			if ((ch->controller->adc == adc) && (ch->ch_num == channel))) {
-				return ch;
+		list_for_each_entry(ch_it, &adc_channel_list, list) {
+			if ((ch_it->controller->adc == adc) && (ch_it->ch_num == channel)) {
+				return ch_it;
 			}
 		}
 	}
 	return NULL;
 }
 
-static inline struct adc_channel * dev_adc_get_next_channel()
+static inline struct adc_channel * adc_get_next_channel(ADC_TypeDef * adc)
 {
-	if (!list_empty(&adc_ch_list)) {
+	if (!list_empty(&adc_channel_list)) {
 		struct adc_channel * ch_it;
-		list_for_each_entry(ch_it, &ch->adc_ch_list, list) {
-			if (ch->enable && !ch->ready) {
-				TRACEL(TRACE_LEVEL_ADC, ("ADC:next->%d\n", ch->ch_num));
-				return ch;
+		list_for_each_entry(ch_it, &adc_channel_list, list) {
+			if ((ch_it->controller->adc == adc) && ch_it->enable && !ch_it->ready) {
+				TRACEL(TRACE_LEVEL_ADC, ("ADC:next->%d\n", ch_it->ch_num));
+				return ch_it;
 			}
 		}
 	}
@@ -177,16 +175,6 @@ void dev_adc_reset_channel(struct adc_channel * ch)
 		ch->avg.shift_cntr = 0;
 	}
 }
-
-void dev_adc_update(struct dev_adc_module * dev)
-{
-	if (dev->mode == DEV_ADC_MODE_POLLING) {
-		if (dev_adc_reset_channels(dev)) {
-			dev_adc_start(dev);
-		}
-	}
-}
-
 
 void ADC1_2_IRQHandler(void)
 {
@@ -206,25 +194,37 @@ void ADC1_2_IRQHandler(void)
 				ch->value = ADC_GetConversionValue(ADC1);
 				ch->ready = 1;
 			}
-			TRACEL(TRACE_LEVEL_ADC, ("ADC1:value[%d]->%d\n", dev_adc1->curr_channel->channel, dev_adc1->curr_channel->value));
+			TRACEL(TRACE_LEVEL_ADC, ("ADC1:value[%d]->%d\n", ch->ch_num, ch->value));
 	
-			adc1_curr_channel = dev_adc_get_next_channel(dev_adc1);
-			if (adc1_curr_channel) {
-				ch = adc_find(ADC1, adc1_curr_channel);
+			ch = adc_get_next_channel(ADC1);
+			if (ch) {
 				adc_start(ch);
 			}
 		}
 		ADC_ClearITPendingBit(ADC1, ADC_IT_EOC);
 	}
 	else if (ADC_GetITStatus(ADC2, ADC_IT_EOC) != RESET) {
-		/* save value */
-		dev_adc_stop(dev_adc2);
-		dev_adc2->curr_channel->value = ADC_GetConversionValue(ADC2);
-		TRACEL(TRACE_LEVEL_ADC, ("ADC2:value[%d]->%d\n", dev_adc2->curr_channel->channel, dev_adc2->curr_channel->value));
-		dev_adc2->curr_channel->ready = 1;
-		dev_adc2->curr_channel = dev_adc_get_next_channel(dev_adc2);
-		if (dev_adc2->curr_channel) {
-			adc_start(ch);
+		/* Stop ADCx Software Conversion */
+		ADC_SoftwareStartConvCmd(ADC2, DISABLE);
+		/* Disable ADCx EOC interrupt */
+		ADC_ITConfig(ADC2, ADC_IT_EOC, DISABLE);
+		/* Retrieve channel */
+		struct adc_channel * ch = adc_find(ADC2, adc2_curr_channel);
+		if (ch) {
+			/* save value */
+			if (ch->avg.shift) {
+
+			}
+			else {
+				ch->value = ADC_GetConversionValue(ADC2);
+				ch->ready = 1;
+			}
+			TRACEL(TRACE_LEVEL_ADC, ("ADC2:value[%d]->%d\n", ch->ch_num, ch->value));
+	
+			ch = adc_get_next_channel(ADC2);
+			if (ch) {
+				adc_start(ch);
+			}
 		}
 		ADC_ClearITPendingBit(ADC2, ADC_IT_EOC);
 	}

@@ -27,6 +27,7 @@ set(PERIPH_LIB_SRC ${LIBS}/StdPeriph_Driver/src/)
 set(SRC_FILES
         # STM32 standard periph drivers
         ${PERIPH_LIB_SRC}/misc.c
+        ${PERIPH_LIB_SRC}/stm32f10x_adc.c
         ${PERIPH_LIB_SRC}/stm32f10x_exti.c
         ${PERIPH_LIB_SRC}/stm32f10x_flash.c
         ${PERIPH_LIB_SRC}/stm32f10x_rcc.c
@@ -40,6 +41,7 @@ set(SRC_FILES
         syscalls.c
         main.c
         cortexm_delay.c
+        dev_adc.c
         dev_spi.c
         dev_uart.c
         dev_pwm.c
