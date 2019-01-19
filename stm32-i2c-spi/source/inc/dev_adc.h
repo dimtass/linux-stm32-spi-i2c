@@ -42,7 +42,7 @@ struct adc_channel;
 #define DECLARE_ADC_CH(NAME, CHANNEL, PORT, PIN) \
 	struct adc_channel NAME = { \
 		.channel = CHANNEL, \
-		.index = 0, 
+		.index = 0, \
 		.port = PORT, \
 		.pin = PIN, \
 	}

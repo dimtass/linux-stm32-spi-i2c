@@ -90,7 +90,7 @@ void adc_stop()
 
 void adc_add_channel(struct adc_channel * ch)
 {
-
+	/* Check if pins are needed to setup */
 	if (ch->port) {
 		GPIO_InitTypeDef GPIO_InitStructure;
 		RCC_APB2PeriphClockCmd ( RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE ) ;
@@ -99,8 +99,8 @@ void adc_add_channel(struct adc_channel * ch)
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 		GPIO_Init(ch->port, &GPIO_InitStructure);
 	}
-	
-	ch->rank = ++_adc_channels;
+	/* increment index and channels */
+	ch->index = ++_adc_channels;
 
 	DMA_Cmd (DMA1_Channel1, DISABLE);
 	_dma_conf.DMA_BufferSize = _adc_channels;
@@ -110,8 +110,8 @@ void adc_add_channel(struct adc_channel * ch)
 	_adc_conf.ADC_NbrOfChannel = _adc_channels;
 	ADC_Init(ADC1, &_adc_conf);
 
-	ADC_RegularChannelConfig(ADC1, ch->channel, ch->rank, ADC_SampleTime_239Cycles5);
-	TRACEL(TRACE_LEVEL_ADC, ("ADC:add->%d-%d\n", ch->channel, ch->rank));
+	ADC_RegularChannelConfig(ADC1, ch->channel, ch->index, ADC_SampleTime_239Cycles5);
+	TRACEL(TRACE_LEVEL_ADC, ("ADC:add->%d-%d\n", ch->channel, ch->index));
 
 }
 
