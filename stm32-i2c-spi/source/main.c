@@ -15,6 +15,8 @@
 #include "dev_spi.h"
 #include "dev_pwm.h"
 #include "dev_i2c_slave.h"
+#include "dev_timer.h"
+#include "dev_led.h"
 
 /* This function overclocks stm32 to 128MHz */
 extern uint32_t overclock_stm32f103(void);
@@ -22,14 +24,23 @@ extern uint32_t overclock_stm32f103(void);
 /* Callbacks */
 void dbg_uart_parser(uint8_t *buffer, size_t bufferlen, uint8_t sender);
 uint8_t i2c_interrupt(struct i2c_client *, enum i2c_slave_event, uint8_t * byte);
+void adc_temp_cbk(struct adc_channel * adc, uint16_t value);
+void adc_light_sensor_cbk(struct adc_channel * adc, uint16_t value);
 
 /* Declare glb struct and initialize buffers */
 volatile struct tp_glb glb;
 
 DECLARE_UART_DEV(dbg_uart, USART1, 115200, 256, 10, 1);
+DECLARE_MODULE_LED(led_module, 250);
+DECLARE_DEV_LED(led_status, GPIOC, GPIO_Pin_13, &led_module);
+DECLARE_ADC_CH(adc_temp, ADC_Channel_TempSensor, NULL, 0);
+DECLARE_ADC_CH(adc_light_sensor, ADC_Channel_0, GPIOA, GPIO_Pin_0);
+
+static LIST_HEAD(dev_timer_list);
 
 struct pwm_device pwm_chan;
 struct i2c_client i2c;
+struct adc_channel temp_sensor;
 
 int counter = 0;
 int fps = 0;
@@ -37,10 +48,32 @@ int fps = 0;
 void main_loop(void)
 {
 	/* 10 ms timer */
-	if (glb.tmr_10ms) {
-		glb.tmr_10ms = 0;
-		dev_uart_update(&dbg_uart);
+	if (glb.tmr_1ms) {
+		glb.tmr_1ms = 0;
+		dev_timer_polling(&dev_timer_list);
 	}
+}
+
+void test_tmr_irq(void * tmp)
+{
+	// {
+	// 	int adc_value;
+	// 	int temperature;
+
+	// 	const uint16_t V25 = 1750;// when V25=1.41V at ref 3.3V
+	// 	const uint16_t Avg_Slope = 5; //when avg_slope=4.3mV/C at ref 3.3V
+
+	// 	adc_value = adc_get_value(adc_temp.channel);
+	// 	temperature = (uint16_t)((V25-adc_value)/Avg_Slope+25);
+	// 	TRACE(("TEMP=%d, T=%d C\n", adc_value, temperature));
+	// }
+	
+	// TRACE(("LIGHT=%d\n", adc_get_value(adc_light_sensor.channel)));
+	TRACE(("ADC: "));
+	for (int i=0; i<adc_get_num_of_channels(); i++) {
+		TRACE(("%d:%d , ", i, adc_get_value(i)));
+	}
+	TRACE(("\n"));
 }
 
 int main(void)
@@ -68,20 +101,31 @@ int main(void)
 			| TRACE_LEVEL_PWM
 			| TRACE_LEVEL_ADC
 			,1);
-	/* debug led */
-	GPIO_InitTypeDef led;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-	led.GPIO_Pin = PIN_STATUS_LED;
-	led.GPIO_Mode = GPIO_Mode_Out_PP;
-	led.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(PORT_STATUS_LED, &led);
 
-	PORT_STATUS_LED->ODR |= PIN_STATUS_LED;
+	/* debug led */
+#ifdef DEBUG_PORT
+	GPIO_InitTypeDef debug_pin;
+	debug_pin.GPIO_Pin = DEBUG_PIN;
+	debug_pin.GPIO_Mode = GPIO_Mode_Out_PP;
+	debug_pin.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(DEBUG_PORT, &led);
+	DEBUG_PORT->ODR |= DEBUG_PIN;
+#endif
+
 
 	/* setup uart port */
 	dev_uart_add(&dbg_uart);
 	/* set callback for uart rx */
 	dbg_uart.fp_dev_uart_cb = dbg_uart_parser;
+
+	/* Initialize led module */
+	dev_led_module_init(&led_module);
+	/* Attach led module to a timer */
+	dev_timer_add((void*) &led_module, led_module.tick_ms, (void*) &dev_led_update, &dev_timer_list);
+	/* Add a new led to the led module */
+	dev_led_probe(&led_status);
+	dev_led_set_pattern(&led_status, 0b00001111);
 
 
 	/* set up the PWM on TIM1 with a 32KHz freq */
@@ -92,9 +136,18 @@ int main(void)
 
 	// pwm_disable(&pwm_chan);
 
+	/* Initialize ADCs */
+	adc_module_init();
+	adc_add_channel(&adc_light_sensor);
+	ADC_TempSensorVrefintCmd(ENABLE);
+	adc_add_channel(&adc_temp);
+	adc_start();
+	
+	dev_timer_add(NULL, 2000, (void*) &test_tmr_irq, &dev_timer_list);
+
 	/* I2C set up */
-	i2c_slave_init(DEV_I2C1, 0x08, 100000, &i2c_interrupt, &i2c);
-	i2c_enable(&i2c);
+	// i2c_slave_init(DEV_I2C1, 0x08, 100000, &i2c_interrupt, &i2c);
+	// i2c_enable(&i2c);
 
 	TRACE(("SystemCoreClock: %lu\n", SystemCoreClock));
 	TRACE(("stm32f103 & SPI & TRACE_LEVEL_I2C...\n"));
@@ -104,12 +157,29 @@ int main(void)
 	}
 }
 
+void adc_light_sensor_cbk(struct adc_channel * adc, uint16_t value)
+{
+	TRACE(("LIGHT: %d\n", value));
+}
+
+
+void adc_temp_cbk(struct adc_channel * adc, uint16_t value)
+{
+	const uint16_t V25 = 1750;// when V25=1.41V at ref 3.3V
+	const uint16_t Avg_Slope = 5; //when avg_slope=4.3mV/C at ref 3.3V
+	int temperature = (uint16_t)((V25-value)/Avg_Slope+25);
+	TRACE(("ADC=%d, T=%d C\r\n", value, temperature));
+}
+
 volatile uint8_t i2c_counter = 0;
 
 uint8_t i2c_interrupt(struct i2c_client * i2c, enum i2c_slave_event event, uint8_t * byte)
 {
 	uint8_t resp = 0;
-	PORT_STATUS_LED->ODR ^= PIN_STATUS_LED;
+	
+#ifdef DEBUG_PORT
+	DEBUG_PORT->ODR ^= DEBUG_PIN;
+#endif
 	// TRACE(("%d: 0x%02X", event, *byte));
 	switch (event) {
 	case I2C_SLAVE_ADDRESSED:

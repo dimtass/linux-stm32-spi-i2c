@@ -30,84 +30,38 @@
 #define DEV_ADC_H_
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include "stm32f10x.h"
 #include "platform_config.h"
-#include "list.h"
-
-enum en_adc_dev {
-    DEV_ADC1,
-    DEV_ADC2,
-
-    DEV_ADC_END
-};
-
-enum en_adc_channel_num {
-	ADC_CH0 = 0,
-	ADC_CH1, ADC_CH2, ADC_CH3, ADC_CH4, ADC_CH5,
-	ADC_CH6, ADC_CH7, ADC_CH8, ADC_CH9, ADC_CH_END
-};
-
-enum en_adc_mode {
-	DEV_ADC_MODE_SINGLE,
-	DEV_ADC_MODE_POLLING    // triggers a conversion as soon the previous is done
-};
 
 struct adc_channel;
 
-typedef int (*adc_cb_t)(struct adc_channel * adc, uint16_t value);
+#define ADC_CH(OWNER, CHANNEL, ENABLE) { OWNER, CHANNEL, ENABLE, 0, 0 }
 
-struct adc_input {
-	GPIO_TypeDef    *port;
-	uint16_t 		pin;
-    uint32_t       	apb_periph;
-};
-
-struct adc_controller {
-	uint8_t 		adc_num;
-	ADC_TypeDef     *adc;
-	uint32_t 		apb_periph;
-	struct adc_input *input;
-};
-
-struct adc_noise_avg {
-	uint32_t 		value;
-	uint8_t			shift;
-	uint8_t			shift_cntr;
-};
+#define DECLARE_ADC_CH(NAME, CHANNEL, PORT, PIN) \
+	struct adc_channel NAME = { \
+		.channel = CHANNEL, \
+		.index = 0, 
+		.port = PORT, \
+		.pin = PIN, \
+	}
 
 struct adc_channel {
-    uint16_t        ch_num;
-    enum en_adc_mode mode;
-	uint8_t 		ready;
-	uint8_t			enable;
+	uint8_t	channel;			/* the ADC channel */
+	uint8_t index;				/* this is the index in the ADC DMA buffer */
 	volatile uint16_t value;
-	uint8_t 		sample_time;
-	adc_cb_t		adc_cb;	// callback
 
-	ADC_InitTypeDef conf;
-	struct adc_noise_avg avg;
-    struct adc_controller *controller;
-	struct list_head list;
+    GPIO_TypeDef *      port;   /* ADC channel port */
+    uint16_t            pin;    /* ADC channel pin */
 };
 
-int adc_init_channel(struct adc_channel * ch, enum en_adc_dev adc_device,
-					enum en_adc_channel_num channel_num,
-					enum en_adc_mode mode, adc_cb_t callback);
-/**
- * This should only be a power of two, because it shifts the adc value
- */
-int adc_avg_conf(uint8_t avg_shift);
-
-/**
- * @param[in] sample_time	see ADC_SampleTime_* in stm32f10x_adc.h
- */
-void adc_set_sample_speed(struct adc_channel * ch, uint8_t sample_time);
-
-uint8_t adc_set_channel(struct adc_channel * dev, uint8_t ch);
-void adc_enable_channel(struct adc_channel * ch, uint8_t enable);
-uint8_t adc_disable_channel(struct adc_channel * dev);
-void adc_reset_channel(struct adc_channel * ch);
-// void adc_update(struct adc_channel * dev);
-
+void adc_module_init();
+void adc_start();
+void adc_stop();
+void adc_add_channel(struct adc_channel * channel);
+void adc_del_channel(struct adc_channel * channel);
+uint16_t adc_get_value(uint8_t channel);
+uint8_t adc_get_num_of_channels();
 
 #endif /* DEV_ADC_H_ */

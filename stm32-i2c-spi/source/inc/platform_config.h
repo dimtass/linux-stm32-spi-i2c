@@ -38,14 +38,12 @@ enum en_trace_level {
 #endif
 
 
-/* GPIOC */
-#define PIN_STATUS_LED 		GPIO_Pin_13
-#define PORT_STATUS_LED 	GPIOC
+// #define DEBUG_PIN	GPIO_Pin_13
+// #define DEBUG_PORT 	GPIOC
 
 /* on reset all of these will be set to 0 */
 struct tp_glb {
-	uint16_t	tmr_10ms;
-	uint16_t 	tmr_1000ms;
+	uint16_t	tmr_1ms;
 	uint8_t		mode;
 	enum en_trace_level trace_levels;
 };

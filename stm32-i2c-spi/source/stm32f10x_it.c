@@ -116,10 +116,7 @@ void PendSV_Handler(void)
  */
 void SysTick_Handler(void)
 {
-	glb.tmr_10ms++;
-	if ((glb.tmr_1000ms++) >= 1000) {
-		glb.tmr_1000ms = 0;
-	}
+	glb.tmr_1ms++;
 }
 
 
