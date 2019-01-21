@@ -32,58 +32,12 @@
 #include <string.h>
 #include "stm32f10x.h"
 #include "platform_config.h"
-
-enum en_spi_port {
-	DEV_SPI1_GPIOA,
-	DEV_SPI1_GPIOB,
-	DEV_SPI2
-};
+#include "dev_spi_common.h"
 
 #define DECLARE_SPI_CHANNEL(NAME, OWNER, CHANNEL) \
 	struct spi_device NAME = { \
 		.channel = CHANNEL, \
 	}
-
-
-struct dma_channel {
-	DMA_Channel_TypeDef * tx_ch;
-	uint32_t		tx_flags;
-	uint32_t		tx_iqrn;
-	DMA_Channel_TypeDef * rx_ch;
-	uint32_t		rx_flags;
-	uint32_t		rx_iqrn;
-	DMA_InitTypeDef config;
-};
-
-
-struct spi_controller {
-	SPI_TypeDef * 	spi;
-	GPIO_TypeDef *  port;
-	uint16_t		miso;
-	uint16_t		mosi;
-	uint16_t		sck;
-	uint16_t		nss;
-	SPI_InitTypeDef config;
-	struct dma_channel * dma;
-};
-
-
-struct spi_device {
-	struct spi_controller * master;
-	struct spi_controller * controller;
-	uint16_t	chip_select;
-	uint8_t 	bits_per_word;	// Use only 8 or 16 (default: 8)
-	uint16_t 	speed;			// Actually this is the prescaller (2, 4, 8, 16, 32, 64, 128, 256)
-	uint8_t		mode;			// See below:
-#define SPI_MODE_CPHA        0x01
-#define SPI_MODE_CPOL        0x02
-#define SPI_MODE_0      (0|0)
-#define SPI_MODE_1      (0|SPI_MODE_CPHA)
-#define SPI_MODE_2      (SPI_MODE_CPOL|0)
-#define SPI_MODE_3      (SPI_MODE_CPOL|SPI_MODE_CPHA)
-
-	void (*receive_irq)(uint8_t * buffer, uint16_t buffer_length);
-};
 
 
 /* Init functions */

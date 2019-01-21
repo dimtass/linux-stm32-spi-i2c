@@ -36,11 +36,10 @@ static struct spi_controller m_devices[] = {
 };
 
 static struct dma_channel m_dma_channels[] = {
-	[DEV_SPI1_GPIOA] = {DMA1_Channel3, DMA1_FLAG_TC3, DMA1_Channel3_IRQn, DMA1_Channel2, DMA1_FLAG_TC2, DMA1_Channel2_IRQn, {0}},
-	[DEV_SPI1_GPIOB] = {DMA1_Channel3, DMA1_FLAG_TC3, DMA1_Channel3_IRQn, DMA1_Channel2, DMA1_FLAG_TC2, DMA1_Channel2_IRQn, {0}},
-	[DEV_SPI2] = {DMA1_Channel3, DMA1_FLAG_TC3, DMA1_Channel3_IRQn, DMA1_Channel2, DMA1_FLAG_TC2, DMA1_Channel2_IRQn, {0}},
+	[DEV_SPI1_GPIOA] = {DMA1_Channel3, DMA1_Channel3_IRQn, DMA1_Channel2, DMA1_Channel2_IRQn, {0}},
+	[DEV_SPI1_GPIOB] = {DMA1_Channel3, DMA1_Channel3_IRQn, DMA1_Channel2, DMA1_Channel2_IRQn, {0}},
+	[DEV_SPI2] = {DMA1_Channel5, DMA1_Channel5_IRQn, DMA1_Channel4, DMA1_Channel4_IRQn, {0}},
 };
-
 
 void* spi_init_master(enum en_spi_port port, struct spi_device * spi)
 {
@@ -73,6 +72,7 @@ void* spi_init_master(enum en_spi_port port, struct spi_device * spi)
                                                      
 	/* in case of SPI master, controller = master */
 	spi->master = spi->controller;
+    spi->slave = NULL;
  
 	/* GPIO configuration */
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -100,7 +100,7 @@ void* spi_init_master(enum en_spi_port port, struct spi_device * spi)
 	else
     	spi_conf->SPI_DataSize = SPI_DataSize_8b;
     spi_conf->SPI_NSS = SPI_NSS_Soft;
-    spi_conf->SPI_BaudRatePrescaler = ((SystemCoreClock / spi->speed) - 1) << 3;
+    spi_conf->SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2; //((SystemCoreClock / spi->speed) - 1) << 3;
     spi_conf->SPI_FirstBit = SPI_FirstBit_MSB;
     switch (spi->mode) {
     case SPI_MODE_0:
@@ -378,16 +378,16 @@ void DMA1_Channel3_IRQHandler(void) {
     }
 }
 
-void DMA1_Channel4_IRQHandler(void) {
-    if (DMA_GetITStatus(DMA1_IT_TC4) == SET) {
-        DMA_Cmd(DMA1_Channel4, DISABLE);
-        DMA_ClearITPendingBit(DMA1_IT_TC4);
-    }
-}
+// void DMA1_Channel4_IRQHandler(void) {
+//     if (DMA_GetITStatus(DMA1_IT_TC4) == SET) {
+//         DMA_Cmd(DMA1_Channel4, DISABLE);
+//         DMA_ClearITPendingBit(DMA1_IT_TC4);
+//     }
+// }
 
-void DMA1_Channel5_IRQHandler(void) {
-    if (DMA_GetITStatus(DMA1_IT_TC5) == SET) {
-        DMA_Cmd(DMA1_Channel5, DISABLE);
-        DMA_ClearITPendingBit(DMA1_IT_TC5);
-    }
-}
+// void DMA1_Channel5_IRQHandler(void) {
+//     if (DMA_GetITStatus(DMA1_IT_TC5) == SET) {
+//         DMA_Cmd(DMA1_Channel5, DISABLE);
+//         DMA_ClearITPendingBit(DMA1_IT_TC5);
+//     }
+// }
