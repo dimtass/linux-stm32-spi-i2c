@@ -43,6 +43,7 @@ set(SRC_FILES
         cortexm_delay.c
         dev_adc.c
         dev_spi.c
+        dev_spi_slave.c
         dev_uart.c
         dev_pwm.c
         dev_led.c

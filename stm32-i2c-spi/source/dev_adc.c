@@ -116,12 +116,12 @@ void adc_add_channel(struct adc_channel * ch)
 }
 
 
-inline uint16_t adc_get_value(uint8_t channel)
+inline uint16_t adc_get_value(uint8_t index)
 {
-	if (channel >= ADC_CH_NUM)
+	if (!index || (index > ADC_CH_NUM))
 		return 0;
 	else
-		return adc_buffer[channel];
+		return adc_buffer[index - 1];
 }
 
 inline uint8_t adc_get_num_of_channels()

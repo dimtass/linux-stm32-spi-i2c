@@ -17,6 +17,7 @@
 #include "dev_i2c_slave.h"
 #include "dev_timer.h"
 #include "dev_led.h"
+#include "dev_spi_slave.h"
 
 /* This function overclocks stm32 to 128MHz */
 extern uint32_t overclock_stm32f103(void);
@@ -35,15 +36,18 @@ DECLARE_MODULE_LED(led_module, 250);
 DECLARE_DEV_LED(led_status, GPIOC, GPIO_Pin_13, &led_module);
 DECLARE_ADC_CH(adc_temp, ADC_Channel_TempSensor, NULL, 0);
 DECLARE_ADC_CH(adc_light_sensor, ADC_Channel_0, GPIOA, GPIO_Pin_0);
+DECLARE_SPI_BUFFER(spi_buffer,uint16_t,3);
 
 static LIST_HEAD(dev_timer_list);
 
 struct pwm_device pwm_chan;
 struct i2c_client i2c;
 struct adc_channel temp_sensor;
+struct spi_device spi_slave;
 
 int counter = 0;
 int fps = 0;
+
 
 void main_loop(void)
 {
@@ -54,23 +58,44 @@ void main_loop(void)
 	}
 }
 
+void spi_callback(struct spi_device * dev)
+{
+	struct spi_buffers * buffers = (struct spi_buffers *) dev->data;
+	uint16_t * rx_buffer = (uint16_t*) buffers->rx_buffer;
+	uint16_t * tx_buffer = (uint16_t*) buffers->tx_buffer;
+
+	TRACE(("SPI cbk: "));
+	for (int i=0; i<buffers->rx_buffer_len; i++) {
+		TRACE(("%04X,", rx_buffer[i]));
+	}
+	TRACE(("\n"));
+
+	for (int i=1; i<buffers->tx_buffer_len; i++) {
+		tx_buffer[i] += 1;
+		TRACE(("%04X,", tx_buffer[i]));
+	}
+	TRACE(("\n"));
+
+}
+
 void test_tmr_irq(void * tmp)
 {
-	// {
-	// 	int adc_value;
-	// 	int temperature;
+	{
+		int adc_value;
+		int temperature;
 
-	// 	const uint16_t V25 = 1750;// when V25=1.41V at ref 3.3V
-	// 	const uint16_t Avg_Slope = 5; //when avg_slope=4.3mV/C at ref 3.3V
+		const uint16_t V25 = 1750;// when V25=1.41V at ref 3.3V
+		const uint16_t Avg_Slope = 5; //when avg_slope=4.3mV/C at ref 3.3V
 
-	// 	adc_value = adc_get_value(adc_temp.channel);
-	// 	temperature = (uint16_t)((V25-adc_value)/Avg_Slope+25);
-	// 	TRACE(("TEMP=%d, T=%d C\n", adc_value, temperature));
-	// }
+		adc_value = adc_get_value(adc_temp.index);
+		temperature = (uint16_t)((V25-adc_value)/Avg_Slope+25);
+		TRACE(("TEMP=%d, T=%d C\n", adc_value, temperature));
+	}
 	
-	// TRACE(("LIGHT=%d\n", adc_get_value(adc_light_sensor.channel)));
+	TRACE(("LIGHT=%d\n", adc_get_value(adc_light_sensor.index)));
+
 	TRACE(("ADC: "));
-	for (int i=0; i<adc_get_num_of_channels(); i++) {
+	for (int i=1; i<=adc_get_num_of_channels(); i++) {
 		TRACE(("%d:%d , ", i, adc_get_value(i)));
 	}
 	TRACE(("\n"));
@@ -87,9 +112,6 @@ int main(void)
 	}
 	/* Initialize the delay timer */
 	delay_init(SystemCoreClock);
-
-	// RCC_PCLK1Config(RCC_HCLK_Div2);    /* Clock APB1 */
-	// RCC_PCLK2Config(RCC_HCLK_Div2);    /* Clock APB1 */
 
 	/* enable/disable traces */
 	set_trace_level(
@@ -143,11 +165,14 @@ int main(void)
 	adc_add_channel(&adc_temp);
 	adc_start();
 	
-	dev_timer_add(NULL, 2000, (void*) &test_tmr_irq, &dev_timer_list);
+	// dev_timer_add(NULL, 2000, (void*) &test_tmr_irq, &dev_timer_list);
 
 	/* I2C set up */
-	// i2c_slave_init(DEV_I2C1, 0x08, 100000, &i2c_interrupt, &i2c);
-	// i2c_enable(&i2c);
+	i2c_slave_init(DEV_I2C1, 0x08, 100000, &i2c_interrupt, &i2c);
+	i2c_enable(&i2c);
+
+	spi_set_options(&spi_slave, 16, SPI_MODE_0);
+	spi_init_slave(DEV_SPI2, &spi_buffer, &spi_callback, &spi_slave);
 
 	TRACE(("SystemCoreClock: %lu\n", SystemCoreClock));
 	TRACE(("stm32f103 & SPI & TRACE_LEVEL_I2C...\n"));
