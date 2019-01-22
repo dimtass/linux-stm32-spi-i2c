@@ -12,115 +12,8 @@ static struct dma_channel m_dma_channels[] = {
 	[DEV_SPI2] = {DMA1_Channel5, DMA1_Channel5_IRQn, DMA1_Channel4, DMA1_Channel4_IRQn, {0}},
 };
 
-uint16_t SPIReceivedValue[3];
-uint16_t SPITransmittedValue[3] = { 0, 0x0, 0x0};
-
 static receive_irq_t _recv_cbk;
 static struct spi_device * _spi = NULL;
-
-void SPI_Slave_and_DMA_Configuration(struct spi_device * spi)
-{
-	// GPIO_InitTypeDef GPIO_InitStructure;
-    // SPI_InitTypeDef SPI_InitStructure; //Variable used to setup the SPI
-    DMA_InitTypeDef DMA_InitStructure; //Variable used to setup the DMA
-	
-	// RCC_APB2PeriphClockCmd ( RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE ) ;
-	// /* GPIO Alternate function */
-	// /* SPI1: PB12 -> NSS */
-	// GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
-	// GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	// GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	// GPIO_Init(GPIOB, &GPIO_InitStructure);
-	
-	// /* SPI1: PB13 -> SCK */
-	// GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
-	// GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	// GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	// GPIO_Init(GPIOB, &GPIO_InitStructure);
-	
-	// /* SPI1: PB14 -> MISO */
-	// GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
-	// GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	// GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	// GPIO_Init(GPIOB, &GPIO_InitStructure);
-	
-	// /* SPI1: PB15 -> MOSI */
-	// GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
-	// GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	// GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	// GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-    // //--Enable the SPI2 periph
-    // RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
-
-    // // Reset SPI Interface
-    // SPI_I2S_DeInit(SPI2);
-
-    // //== SPI2 configuration
-    // SPI_StructInit(&SPI_InitStructure);
-    // SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
-    // SPI_InitStructure.SPI_Mode = SPI_Mode_Slave;
-    // SPI_InitStructure.SPI_DataSize = SPI_DataSize_16b;
-    // SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
-    // SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
-    // SPI_InitStructure.SPI_NSS = SPI_NSS_Hard;
-    // SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
-    // SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
-    // SPI_InitStructure.SPI_CRCPolynomial = 7;
-    // SPI_Init(SPI2, &SPI_InitStructure);
-
-    //--Enable DMA1 clock--
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
-
-    //==Configure DMA1 - Channel4== (SPI -> memory)
-    DMA_DeInit(DMA1_Channel4); //Set DMA registers to default values
-    DMA_StructInit(&DMA_InitStructure);
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&SPI2->DR; //Address of peripheral the DMA must map to
-    DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)&SPIReceivedValue[0]; //Variable to which received data will be stored
-    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-    DMA_InitStructure.DMA_BufferSize = 3; //Buffer size
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-    DMA_Init(DMA1_Channel4, &DMA_InitStructure); //Initialise the DMA
-    DMA_Cmd(DMA1_Channel4, ENABLE); //Enable the DMA1 - Channel4
-
-    //==Configure DMA1 - Channel5== (memory -> SPI)
-    DMA_DeInit(DMA1_Channel5); //Set DMA registers to default values
-    DMA_StructInit(&DMA_InitStructure);
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&SPI2->DR; //Address of peripheral the DMA must map to
-	struct spi_buffers * buffers = (struct spi_buffers *) spi->data;
-    DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)buffers->tx_buffer; //Variable from which data will be transmitted
-    DMA_InitStructure.DMA_BufferSize = buffers->tx_buffer_len; //Buffer size
-    // DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)&SPITransmittedValue[0]; //Variable from which data will be transmitted
-    // DMA_InitStructure.DMA_BufferSize = 3; //Buffer size
-    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-    DMA_Init(DMA1_Channel5, &DMA_InitStructure); //Initialise the DMA
-    DMA_Cmd(DMA1_Channel5, ENABLE); //Enable the DMA1 - Channel5
-
-
-    NVIC_EnableIRQ(DMA1_Channel4_IRQn);
-    DMA_ITConfig(DMA1_Channel4, DMA_IT_TC, ENABLE);
-    // NVIC_EnableIRQ(DMA1_Channel5_IRQn);
-    // DMA_ITConfig(DMA1_Channel5, DMA_IT_TC, ENABLE);
-
-    // Enable SPI2
-    SPI_Cmd(SPI2, ENABLE);
-
-    // Enable the SPI2 RX & TX DMA requests
-    SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Rx | SPI_I2S_DMAReq_Tx, ENABLE);
-}
 
 void spi_init_slave(enum en_spi_port port,
                     struct spi_buffers * buffers,
@@ -242,8 +135,6 @@ void spi_init_slave(enum en_spi_port port,
 
 	/* SPI_MASTER_Rx_DMA_Channel configuration */
 	DMA_DeInit(dma->rx_ch);
-    // dma_conf->DMA_MemoryBaseAddr = (uint32_t)&SPIReceivedValue[0]; //Variable to which received data will be stored
-    // dma_conf->DMA_BufferSize = 2;
     dma_conf->DMA_MemoryBaseAddr = (uint32_t)buffers->rx_buffer; //Variable to which received data will be stored
     dma_conf->DMA_BufferSize = buffers->rx_buffer_len;
     dma_conf->DMA_DIR = DMA_DIR_PeripheralSRC;
@@ -254,12 +145,10 @@ void spi_init_slave(enum en_spi_port port,
     
 	/* SPI_MASTER_Tx_DMA_Channel configuration */
 	DMA_DeInit(dma->tx_ch);
-    // dma_conf->DMA_MemoryBaseAddr = (uint32_t)&SPITransmittedValue[0]; //Variable from which data will be transmitted
-    // dma_conf->DMA_BufferSize = 2; //Buffer size
     dma_conf->DMA_MemoryBaseAddr = (uint32_t)buffers->tx_buffer; //Variable from which data will be transmitted
     dma_conf->DMA_BufferSize = buffers->tx_buffer_len; //Buffer size
     dma_conf->DMA_DIR = DMA_DIR_PeripheralDST;
-    dma_conf->DMA_Mode = DMA_Mode_Normal;
+    dma_conf->DMA_Mode = DMA_Mode_Circular;
     /* Initialize DMA */
 	DMA_Init(dma->tx_ch, dma_conf);
 	/* Enable DMA channels */
@@ -267,8 +156,8 @@ void spi_init_slave(enum en_spi_port port,
 
     NVIC_EnableIRQ(dma->rx_iqrn);
     DMA_ITConfig(dma->rx_ch, DMA_IT_TC, ENABLE);
-    NVIC_EnableIRQ(dma->tx_iqrn);
-    DMA_ITConfig(dma->tx_ch, DMA_IT_TC, ENABLE);
+    // NVIC_EnableIRQ(dma->tx_iqrn);
+    // DMA_ITConfig(dma->tx_ch, DMA_IT_TC, ENABLE);
 
 	/* EnableSPI, Tx DMA, DMA Tx request */
     SPI_Cmd(dev, ENABLE);
@@ -277,22 +166,22 @@ void spi_init_slave(enum en_spi_port port,
 
 void DMA1_Channel4_IRQHandler(void) {
     if (DMA_GetITStatus(DMA1_IT_TC4) == SET) {
-        DMA_Cmd(DMA1_Channel4, DISABLE);
+        // DMA_Cmd(DMA1_Channel4, DISABLE);
 		_recv_cbk(_spi);
-        DMA_Cmd(DMA1_Channel4, ENABLE);
         DMA_ClearITPendingBit(DMA1_IT_TC4);
     }
 }
 
-void DMA1_Channel5_IRQHandler(void) {
-    if (DMA_GetITStatus(DMA1_IT_TC5) == SET) {
-        DMA_Cmd(DMA1_Channel5, DISABLE);
-		// TRACE(("SPI2.5: %02X\n", SPITransmittedValue[0]));
-	    DMA_Init(_spi->controller->dma->tx_ch, &_spi->controller->dma->config);
-        DMA_Cmd(DMA1_Channel5, ENABLE);
-        DMA_ClearITPendingBit(DMA1_IT_TC5);
-    }
-}
+// void DMA1_Channel5_IRQHandler(void) {
+//     if (DMA_GetITStatus(DMA1_IT_TC5) == SET) {
+//         // DMA_Cmd(DMA1_Channel5, DISABLE);
+// 		// // // TRACE(("SPI2.5: %02X\n", SPITransmittedValue[0]));
+// 	    // DMA_Init(_spi->controller->dma->tx_ch, &_spi->controller->dma->config);
+//         // // // DMA_Cmd(DMA1_Channel4, ENABLE);
+//         // DMA_Cmd(DMA1_Channel5, ENABLE);
+//         DMA_ClearITPendingBit(DMA1_IT_TC5);
+//     }
+// }
 
 // void DMA1_Channel2_IRQHandler(void) {
 //     if (DMA_GetITStatus(DMA1_IT_TC2) == SET) {

@@ -112,23 +112,26 @@ static inline struct dev_timer * dev_timer_find_timer(struct dev_timer * tmr, st
 	return NULL;
 }
 
-static inline void dev_timer_add(void * object, uint16_t timeout, void * obj_callback, struct list_head * timer_list)
+static inline struct dev_timer * dev_timer_add(void * object, uint16_t timeout, void * obj_callback, struct list_head * timer_list)
 {
+	if (!timer_list) return NULL;
+
 	struct dev_timer timer = {
 		.parent = object,
 		.timeout_ticks = timeout,
 		.fp_timeout_cb = obj_callback,
 		.counter = 0
 	};
+	struct dev_timer * new_timer = NULL;
 	/* Check if already exists */
-	if (!timer_list) return;
 	if (!dev_timer_find_timer(&timer, timer_list)) {
-		struct dev_timer * new_timer = (struct dev_timer *) malloc(sizeof(struct dev_timer));
+		new_timer = (struct dev_timer *) malloc(sizeof(struct dev_timer));
 		memcpy(new_timer, &timer, sizeof(struct dev_timer));
 		TRACE(("Timer add: %d/%d\n", new_timer->timeout_ticks, new_timer->counter));
 		INIT_LIST_HEAD(&new_timer->list);
 		list_add(&new_timer->list, timer_list);
 	}
+	return new_timer;
 }
 
 static inline void dev_timer_del(struct dev_timer * timer, struct list_head * timer_list)

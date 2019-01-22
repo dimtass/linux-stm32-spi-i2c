@@ -92,7 +92,6 @@ struct pwm_state {
     uint8_t                 enabled;
 };
 
-
 struct pwm_device {
     struct pwm_state        state;
     struct pwm_config       config;

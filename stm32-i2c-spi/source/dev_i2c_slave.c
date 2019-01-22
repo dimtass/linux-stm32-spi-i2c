@@ -166,7 +166,7 @@ void I2C1_EV_IRQHandler(void) {
     else if (event == I2C_EVENT_SLAVE_BYTE_RECEIVED) {
         // Master has sent a byte to the slave
         byte = I2C_ReceiveData(dev);
-        i2c->slave_cb(i2c, I2C_SLAVE_READ_REQUESTED, &byte);
+        i2c->slave_cb(i2c, I2C_SLAVE_WRITE_REQUESTED, &byte);
     }
     /* Master reads data from slave */
     else if (event == I2C_EVENT_SLAVE_TRANSMITTER_ADDRESS_MATCHED) {

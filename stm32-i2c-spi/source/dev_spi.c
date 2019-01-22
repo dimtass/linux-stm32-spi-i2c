@@ -32,7 +32,7 @@ uint32_t spi_available_freq[NUM_OF_SPI_FREQ];
 static struct spi_controller m_devices[] = {
 	[DEV_SPI1_GPIOA] = {SPI1, GPIOA, GPIO_Pin_6, GPIO_Pin_7, GPIO_Pin_5, GPIO_Pin_4},
 	[DEV_SPI1_GPIOB] = {SPI1, GPIOA, GPIO_Pin_6, GPIO_Pin_7, GPIO_Pin_5, GPIO_Pin_4},
-	[DEV_SPI2] = {SPI1, GPIOA, GPIO_Pin_6, GPIO_Pin_7, GPIO_Pin_5, GPIO_Pin_4},
+	[DEV_SPI2] = {SPI2, GPIOB, GPIO_Pin_14, GPIO_Pin_15, GPIO_Pin_13, GPIO_Pin_12},
 };
 
 static struct dma_channel m_dma_channels[] = {

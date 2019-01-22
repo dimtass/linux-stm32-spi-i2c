@@ -38,8 +38,9 @@ enum en_trace_level {
 #endif
 
 
-// #define DEBUG_PIN	GPIO_Pin_13
-// #define DEBUG_PORT 	GPIOC
+#define USE_DEBUG_PIN
+#define DEBUG_PIN	GPIO_Pin_14
+#define DEBUG_PORT 	GPIOC
 
 /* on reset all of these will be set to 0 */
 struct tp_glb {
