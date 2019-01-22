@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <argp.h>
 
 #define POLLING_MS	50
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
@@ -125,6 +126,10 @@ struct spi_dev {
 
 int spi_init(struct spi_dev* dev)
 {
+	if (dev->fd) {
+		close(dev->fd);
+	}
+	// fd is either closed or not accessible 
 	dev->fd = open(dev->device, O_RDWR);
 	if (dev->fd < 0){
 		perror("can't open device");
@@ -155,10 +160,6 @@ int spi_init(struct spi_dev* dev)
 		exit(1);
 	}
 
-	printf("SPI mode: %d\n", dev->mode);
-	printf("SPI bits per word: %d\n", dev->bits);
-	printf("SPI max speed: %d Hz (%d KHz)\n", dev->speed, dev->speed/1000);
-
 	return dev->fd;
 }
 
@@ -167,7 +168,7 @@ enum spi_read_cmd {
 	SPI_READ_TEMP = 0xA1,
 };
 
-static uint16_t spi_read_light(struct spi_dev * dev, enum spi_read_cmd cmd)
+static uint16_t spi_read_light(struct spi_dev * dev, enum spi_read_cmd cmd, uint8_t enable_printf)
 {
 	#define BUF_SIZE 2
 	int ret;
@@ -185,9 +186,11 @@ static uint16_t spi_read_light(struct spi_dev * dev, enum spi_read_cmd cmd)
 		perror("can't send spi message");
 		exit(1);
 	}
-	// for (int i=0; i<BUF_SIZE; i++)
-	// 	printf("%02X ", rx[i]);
-	// printf("\n");
+	if (enable_printf) {
+		for (int i=0; i<BUF_SIZE; i++)
+			printf("%02X ", rx[i]);
+		printf("\n");
+	}
 	return (rx[0] << 8) | rx[1];
 }
 
@@ -210,71 +213,186 @@ long long current_timestamp() {
     return milliseconds;
 }
 
-int main(int argc, char** argv) {
 
-	print_usage(argc, argv);
+static void usage(const char *argv0)
+{
+    fprintf(stderr, "Usage:\n"
+		"%s [-i I2C_DEV] [-s SPI DEV] [-m MODE] [-s SAMPLES]\n"
+		"\t-i   : the I2C device/bus that the photoresistor is connected (e.g. /dev/i2c-0)\n"
+		"\t-s   : the SPI device/bus that the PWM LED is connected (e.g. /dev/spidev0.0)\n"
+		"\t-b   : SPI baudrate (default 1000000)\n"
+		"\t-r   : Number of runs/iterations for the SPI/I2C read/write (default -1, run forever)\n"
+		"\t-m   : mode\n"
+		"\t\t0: Fast mode (default).\n"
+		"\t\t1: Load mode. Adds some printfs to create dummy load.\n"
+		"\t\t2: Benchmark mode. Tries these SPI speeds: 1Mz, 2MHz, 5MHz, 10MHz, 20MHz, 30MHz\n\n"
+		,
+		argv0);
+    exit(EXIT_FAILURE);
+}
+
+enum en_mode {
+	MODE_NORMAL = 0,
+	MODE_BENCHMARK
+};
+
+enum en_benchmark_speed {
+	SPI_1MHz,
+	SPI_2MHz,
+	SPI_5MHz,
+	SPI_10MHz,
+	SPI_20MHz,
+	SPI_30MHz,
+	SPI_SPEED_END
+};
+#define DEFAULT_ITERATIONS 10
+
+int main(int argc, char** argv)
+{
+	int opt;
+	int mode = MODE_NORMAL;
+	int spi_baud = 1000000;
+	int iterations = -1;
+	int spi_speed_index = 0;
+	uint8_t en_printf = 0;
 
 	/* Create the I2C data */
 	struct i2c_dev i2c = {
 		.fd = -1,
 		.addr = I2C_ADDR
 	};
-	strncpy(i2c.device, argv[1], STR_MAX_SIZE);
 
 	struct spi_dev spi = {
 		.fd = -1,
 		.mode = 0,
 		.bits = 8,
-		.speed = 3000000,
+		.speed = 1000000,
 	};
-	strncpy(spi.device, argv[2], STR_MAX_SIZE);
-	printf("Application started\n"); /* prints Hello World */
+	int spi_benchmark_speeds[SPI_SPEED_END] = {
+		[SPI_1MHz] = 1000000,
+		[SPI_2MHz] = 2000000,
+		[SPI_5MHz] = 5000000,
+		[SPI_10MHz] = 10000000,
+		[SPI_20MHz] = 20000000,
+		[SPI_30MHz] = 30000000,
+	};
+
+    while ((opt = getopt(argc, argv, "i:s:b:m:r:p:")) != -1)
+    {
+        switch (opt)
+        {
+		case 'i':
+			strncpy(i2c.device, optarg, STR_MAX_SIZE);
+			break;
+        case 's':
+			strncpy(spi.device, optarg, STR_MAX_SIZE);
+            break;
+        case 'm':
+            mode = atoi(optarg);
+            break;
+        case 'b':
+            spi.speed = atoi(optarg);
+            break;
+		case 'r':
+			iterations = atoi(optarg);
+			break;
+		case 'p':
+			en_printf = atoi(optarg);
+			break;
+        default:
+            usage(argv[0]);
+        }
+    }
+
+    // if (argc - optind < 2)
+    // {
+    //     fprintf(stderr, "%s: too few arguments. Needs at least -i and -s. Got %d\n", argv[0], argc);
+    //     usage(argv[0]);
+    // }
+
+	printf("== Settings:\n\tMode: ");
+	switch (mode) {
+	case MODE_NORMAL:
+		printf("Fast\n");
+		break;
+	case MODE_BENCHMARK:
+		printf("Benchmark\n");
+		break;
+	};
+	printf("\tNumber of runs: %d\n", iterations);
+	printf("\tSPI dev: %s\n", spi.device);
+	printf("\tI2C dev: %s\n", i2c.device);
+	printf("\n"); /* prints Hello World */
 
 	/* init i2c */
 	i2c.fd = i2c_init(i2c.device);
 
 	/* init spidev */
-	spi_init(&spi);
+	spi.fd = spi_init(&spi);
 
 	uint32_t counter = 0;
 	long long start = current_timestamp();
 	long long stop = 0;
 	int msec = 0;
-	while(1) {
-		uint16_t adc = spi_read_light(&spi, SPI_READ_LIGHT);
+	int *benchmark_results;
+
+	printf("Start:\n\n");
+
+	if (mode == MODE_BENCHMARK) {
+		spi.speed = spi_benchmark_speeds[0];
+		printf("== Benchmark mode\n\tSPI speed: %d Hz (%d KHz)\n",
+				spi.speed, spi.speed/1000);
+		if (iterations < 1) iterations = DEFAULT_ITERATIONS;
+		benchmark_results = (int*)malloc(iterations * SPI_SPEED_END * sizeof(int));
+	};
+	int iter_cntr = iterations;
+	int bench_res_cntr = 0;
+
+	/* don't try to figure out how this works. It just does. */
+	while(iter_cntr) {
+		uint16_t adc = spi_read_light(&spi, SPI_READ_LIGHT, en_printf);
 		i2c_write_pwm(i2c.addr, i2c.fd, (100*adc)/0x4095);
 		counter++;
 
 		stop = current_timestamp();
 		if (stop - start >= 1000) {
+			start = current_timestamp();
+			
+			if (mode == MODE_BENCHMARK)
+				benchmark_results[bench_res_cntr++] = counter;
 			printf("%d\n", counter);
 			counter = 0;
-			start = current_timestamp();
+			if (iter_cntr) iter_cntr--;
+
+			/* When in benchmark mode repeat for all spi speeds */
+			if (!iter_cntr && (mode == MODE_BENCHMARK)) {
+
+				if ((++spi_speed_index) >= SPI_SPEED_END) break;
+				spi.speed = spi_benchmark_speeds[spi_speed_index];
+				printf("\tSPI speed: %d Hz (%d KHz)\n",
+							spi.speed, spi.speed/1000);
+				iter_cntr = iterations;
+				/* update spi */
+				if (ioctl(spi.fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi.speed) == -1){
+					perror("can't set max speed hz");
+					exit(1);
+				}
+			}
 		}
 	}
 
-
-	// uint8_t pwm = i2c_read_pwm(i2c.addr, i2c.fd);
-	// printf("PWM: %d\n", pwm);
-	// while (1) {
-	// 	pwm = spi_read_light(&spi, SPI_READ_LIGHT);
-	// 	i2c_write_pwm(i2c.addr, i2c.fd, pwm+10);
-	// 	// usleep(500);
-	// }
-
-	/* loop forever */
-	// while (1) {
-	// 	/* read ADC value from the photoresistor via I2C */
-	// 	uint16_t light_value = spi_read_light(&spi, SPI_READ_LIGHT);
-
-
-	// 	uint16_t adc_value = i2c_read_adc(i2c.addr, i2c.fd);
-	// 	/* send the PWM LED value via SPI */
-	// 	spi_send16(&spi, adc_value);
-	// 	TRACE((":  %d\n", adc_value));
-	// 	/* sleep */
-	// 	usleep(POLLING_MS * 1000);
-	// }
+	/* print results? */
+	if (mode == MODE_BENCHMARK) {
+		printf("\nResults: %d\n", bench_res_cntr);
+		int i, k = 0;
+		for (i=0; i<SPI_SPEED_END; i++) {
+			printf("\tSPI speed: %d Hz (%d KHz)\n",
+						spi_benchmark_speeds[i], spi_benchmark_speeds[i]/1000);
+			for (k=0; k<iterations; k++) {
+				printf("%d\n", *(benchmark_results + i*iterations + k));
+			}
+		}
+	}
 
 	/* clean up */
 	close(i2c.fd);
