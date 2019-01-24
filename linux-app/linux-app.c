@@ -220,12 +220,10 @@ static void usage(const char *argv0)
 		"%s [-i I2C_DEV] [-s SPI DEV] [-m MODE] [-s SAMPLES]\n"
 		"\t-i   : the I2C device/bus that the photoresistor is connected (e.g. /dev/i2c-0)\n"
 		"\t-s   : the SPI device/bus that the PWM LED is connected (e.g. /dev/spidev0.0)\n"
-		"\t-b   : SPI baudrate (default 1000000)\n"
-		"\t-r   : Number of runs/iterations for the SPI/I2C read/write (default -1, run forever)\n"
-		"\t-m   : mode\n"
-		"\t\t0: Fast mode (default).\n"
-		"\t\t1: Load mode. Adds some printfs to create dummy load.\n"
-		"\t\t2: Benchmark mode. Tries these SPI speeds: 1Mz, 2MHz, 5MHz, 10MHz, 20MHz, 30MHz\n\n"
+		"\t-b   : SPI baudrate (default:1000000)\n"
+		"\t-r   : Number of runs/iterations for the SPI/I2C read/write (default:-1, run forever)\n"
+		"\t-m   : mode. 0: Normal (default), 1: Benchmark [1,2,5,10,20,30MHz]\n"
+		"\t-p   : enable printf. This creates a dummy load by printing the SPI values (default:0)\n"
 		,
 		argv0);
     exit(EXIT_FAILURE);
@@ -277,7 +275,7 @@ int main(int argc, char** argv)
 		[SPI_30MHz] = 30000000,
 	};
 
-    while ((opt = getopt(argc, argv, "i:s:b:m:r:p:")) != -1)
+    while ((opt = getopt(argc, argv, "i:s:b:m:r:p:h:")) != -1)
     {
         switch (opt)
         {
@@ -299,8 +297,10 @@ int main(int argc, char** argv)
 		case 'p':
 			en_printf = atoi(optarg);
 			break;
+		case 'h':
         default:
             usage(argv[0]);
+			exit(0);
         }
     }
 

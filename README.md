@@ -1,33 +1,43 @@
-Linux and the I2C and SPI interface
+Linux, the I2C and SPI interface and the SMP and PREEMPT-RT kernel
 ----
+This source code is part of this stupi-project here:
+https://www.stupid-projects.com/linux-and-the-i2c-and-spi-interfaces-part-2/
+
+The first part, which uses an Arduino nano is here:
+https://www.stupid-projects.com/linux-and-the-i2c-and-spi-interfaces/
 
 ## Hardware
-For testing I've used the [Arduino nano](https://store.arduino.cc/arduino-nano)
-to emulate two devices, one I2C photoresistor sensor and one SPI PWM LED.
+For testing I've used the [stm32f103 - bluepill](https://wiki.stm32duino.com/index.php?title=Blue_Pill)
+to emulate two devices, one SPI photoresistor sensor and one I2C PWM LED.
 These devices, for example, could be two different attiny85; but as the
-atmega368p is power enough for the task, we can use the same chip to emulate
-both.
+stm32f103 is power enough for the task, we can use the same chip to emulate
+both. Also this mcu runs at 72MHz and has a DMA for most of its peripherals
+and if it's overcolcked to 128MHz can achieve ~62MHz SPI, see
+[here](https://www.stupid-projects.com/driving-an-ili9341-lcd-with-an-overclocked-stm32f103/)
 
 Also, I'm using the [nanopi-neo](http://wiki.friendlyarm.com/wiki/index.php/NanoPi_NEO)
 for the Linux hardware as it's a low spec board with an allwinner H3,
 it's really cheap and common to find and it has both an I2C and SPI interface.
 
-The photo-resistor I'm using is the `VT33A603/2` and also I'm using an orange
-LED.s
+Also a random-whatevah photoresistor and LED are used but not harmed during the experiment.
 
 ## Connection
-These are the connections between the `Nanopi-neo` and the `Arduino nano`.
+These are the connections between the `Nanopi-neo` and the `stm32f103`.
 
 Signal | Arduino | Nanopi-neo
 -|-|-
-/SS | D10 | 24 (SPI0_CS)
-MOSI | D11 | 19 (SPI0_MISO)
-MISO | D12 | 21 (SPI0_MOSI)
-SCK | D13 | 23 (SPI0_CLK)
-SDA | A4 | 3 (I2C0_SDA)
-SCL | A5 | 5 (I2C0_SCL)
+/SS | B12 | 24 (SPI0_CS)
+MOSI | B15 | 19 (SPI0_MISO)
+MISO | B14 | 21 (SPI0_MOSI)
+SCK | B13 | 23 (SPI0_CLK)
+SDA | PB7 | 3 (I2C0_SDA)
+SCL | PB6 | 5 (I2C0_SCL)
 
 > For the `Nanopi-neo` pinout header you can have a look [here](http://wiki.friendlyarm.com/wiki/index.php/NanoPi_NEO)
+
+The photoresistor is connected on the PA0 pin and the PWM output is set to PB10.
+
+For the SPI slave DMA is used and for the I2C only interrupts, though DMA is available, too.
 
 ## Yocto build
 ```sh
@@ -115,18 +125,43 @@ cd /home/root
 ./linux-app
 ```
 
-Then you'll see that the app will sample the I2C light sensor every 150ms and
-update the SPI PWM LED.
+Then you'll see that the app will sample the SPI light sensor
+updates the I2C PWM LED in a while loop.
 
 ```sh
-Application started
-SPI mode: 0
-SPI bits per word: 8
-SPI max speed: 1000000 Hz (1000 KHz)
-:  907
-:  908
-:  909
+./linux-app -i /dev/i2c-0 -s /dev/spidev0.0 -m 0 -b 5000000 -p 0
+== Settings:
+        Mode: Fast
+        Number of runs: -1
+        SPI dev: /dev/spidev0.0
+        I2C dev: /dev/i2c-0
+
+Start:
+
+2935
+2935
+2937
+2938
 ...
+```
+
+For more info how to use the `linux-app` tool run this:
+```sh
+./linux-app -h
+```
+
+Just for convenience this is the output of the above command:
+```sh
+Usage:
+./linux-app [-i I2C_DEV] [-s SPI DEV] [-m MODE] [-s SAMPLES]
+        -i   : the I2C device/bus that the photoresistor is connected (e.g. /dev/i2c-0)
+        -s   : the SPI device/bus that the PWM LED is connected (e.g. /dev/spidev0.0)
+        -b   : SPI baudrate (default 1000000)
+        -r   : Number of runs/iterations for the SPI/I2C read/write (default -1, run forever)
+        -m   : mode
+                0: Fast mode (default).
+                1: Load mode. Adds some printfs to create dummy load.
+                2: Benchmark mode. Tries these SPI speeds: 1Mz, 2MHz, 5MHz, 10MHz, 20MHz, 30MHz
 ```
 
 ## Kernel drivers
