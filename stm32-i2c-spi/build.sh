@@ -54,10 +54,9 @@ echo "cmake scripts     : ${SCRIPTS_CMAKE}"
 echo "IDE generator     : ${IDE_GENERATOR}"
 echo "Threads           : ${PARALLEL}"
 
-cd source
-
-# setup cmake
-cmake -G"${IDE_GENERATOR}" -H. -B${BUILD_ARCH_DIR} ${CMAKE_FLAGS}
+mkdir -p "${BUILD_ARCH_DIR}"
+cd "${BUILD_ARCH_DIR}"
+cmake -G"${IDE_GENERATOR}" ${CMAKE_FLAGS} ../source
 
 # build
-make -C ${BUILD_ARCH_DIR} -j${PARALLEL} --no-print-directory
+make -j${PARALLEL} --no-print-directory
