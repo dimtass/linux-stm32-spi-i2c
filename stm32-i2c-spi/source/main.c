@@ -247,19 +247,19 @@ uint8_t i2c_interrupt(struct i2c_client * i2c, enum i2c_slave_event event, uint8
 {
 	uint8_t resp = 0;
 	
-	// TRACE(("%d: 0x%02X", event, *byte));
+	TRACE(("%d: 0x%02X", event, *byte));
 	switch (event) {
 	case I2C_SLAVE_ADDRESSED:
-		// TRACE(("1 - %d: 0x%02X\n", event, *byte));
+		TRACE(("1 - %d: 0x%02X\n", event, *byte));
 		state_change(&sm, SM_IDLE);
 		i2c_cmd = 0;
 		break;
 	case I2C_SLAVE_READ_REQUESTED:
-		// TRACE(("2 - %d: 0x%02X\n", event, *byte));
+		TRACE(("2 - %d: 0x%02X\n", event, *byte));
 		if (sm.state_curr->state != SM_IDLE) {
 			switch(i2c_cmd) {
 			case I2C_CMD_READ_PWM_VALUE:
-				// TRACE(("Read PWM value: %d\n", *byte));
+				TRACE(("Read PWM value: %d\n", *byte));
 				resp = (uint8_t)pwm_chan.state.duty_cycle;
 				break;
 			}
@@ -268,7 +268,7 @@ uint8_t i2c_interrupt(struct i2c_client * i2c, enum i2c_slave_event event, uint8
 		}
 		break;
 	case I2C_SLAVE_WRITE_REQUESTED:
-		// TRACE(("3 - %d: 0x%02X\n", event, *byte));
+		TRACE(("3 - %d: 0x%02X\n", event, *byte));
 		if (sm.state_curr->state != SM_IDLE) {
 			switch(i2c_cmd) {
 			case I2C_CMD_WRITE_PWM_VALUE:

@@ -5,7 +5,7 @@ set(CMAKE_SYSTEM_VERSION   1)
 set(CMAKE_SYSTEM_PROCESSOR arm-none-eabi)
 
 # set arm-none-eabi toolchain paths
-set(TOOLCHAIN_DIR /opt/toolchains/gcc-arm-none-eabi-7-2017-q4-major)
+set(TOOLCHAIN_DIR /opt/toolchains/gcc-arm-none-eabi-9-2019-q4-major)
 #set(TOOLCHAIN_DIR /opt/toolchains/gcc-arm-none-eabi-8-2018-q4-major)
 set(TOOL_CHAIN_PREFIX arm-none-eabi)
 set(TOOLCHAIN_BIN_DIR ${TOOLCHAIN_DIR}/bin)

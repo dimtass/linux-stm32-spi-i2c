@@ -24,7 +24,7 @@ Also a random-whatevah photoresistor and LED are used but not harmed during the 
 ## Connection
 These are the connections between the `Nanopi-neo` and the `stm32f103`.
 
-Signal | Arduino | Nanopi-neo
+Signal | STM32F103 | Nanopi-neo
 -|-|-
 /SS | B12 | 24 (SPI0_CS)
 MOSI | B15 | 19 (SPI0_MISO)
@@ -43,8 +43,8 @@ For the SPI slave DMA is used and for the I2C only interrupts, though DMA is ava
 ```sh
 mkdir -p yocto/sources
 cd yocto/sources
-git clone --depth 1 -b sumo git://git.yoctoproject.org/poky
-git clone --depth 1 -b sumo git@github.com:openembedded/meta-openembedded.git
+git clone --depth 1 -b zeus git://git.yoctoproject.org/poky
+git clone --depth 1 -b zeus git@github.com:openembedded/meta-openembedded.git
 git clone --depth 1 git@bitbucket.org:dimtass/meta-allwinner-hx.git
 mv ../../meta-allwinner-i2c-spi-arduino .
 cp meta-allwinner-hx/scripts/setup-environment.sh .
