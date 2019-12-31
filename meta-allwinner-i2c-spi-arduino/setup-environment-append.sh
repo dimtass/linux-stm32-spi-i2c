@@ -4,12 +4,12 @@
 # and it should be called from another setup-environment script.
 # That way this meta layer can apply its custom configurations.
 #
-# Author: dimitris.tassopoulos@native-instruments.de
+# Author: dimtass@gmail.com
 
 REL_PATH=$1
 
 # Override the default maschine bblayers.conf
-echo "Replacing bblayers.conf in ${BBPATH}/conf/bblayers.conf meta-allwinner-i2c-spi-arduino"
+echo "Replacing bblayers.conf in ${BBPATH}/conf/bblayers.conf"
 cp $REL_PATH/conf/bblayers.conf ${BBPATH}/conf/bblayers.conf
 
 if [ -f ${REL_PATH}/conf/machine/${MACHINE}-extra.conf ]; then
